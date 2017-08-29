@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+	<title>2048</title>
+	<link rel="stylesheet" href="css/style.css" />
+    <script src="js/jquery-3.1.1.min.js"></script>
+    <script src="js/functions.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>2048</h1>
+        <a href="javascript:newgame();" id='newgamebutton'>New Game</a>
+        <p>score: <span id="score">0</span></p>
+    </header>
+
+    <div id="grid-container">
+        <div class="grid-cell" id="grid-cell-0-0"></div>
+        <div class="grid-cell" id="grid-cell-0-1"></div>
+        <div class="grid-cell" id="grid-cell-0-2"></div>
+        <div class="grid-cell" id="grid-cell-0-3"></div>
+
+        <div class="grid-cell" id="grid-cell-1-0"></div>
+        <div class="grid-cell" id="grid-cell-1-1"></div>
+        <div class="grid-cell" id="grid-cell-1-2"></div>
+        <div class="grid-cell" id="grid-cell-1-3"></div>
+
+        <div class="grid-cell" id="grid-cell-2-0"></div>
+        <div class="grid-cell" id="grid-cell-2-1"></div>
+        <div class="grid-cell" id="grid-cell-2-2"></div>
+        <div class="grid-cell" id="grid-cell-2-3"></div>
+
+        <div class="grid-cell" id="grid-cell-3-0"></div>
+        <div class="grid-cell" id="grid-cell-3-1"></div>
+        <div class="grid-cell" id="grid-cell-3-2"></div>
+        <div class="grid-cell" id="grid-cell-3-3"></div>
+    </div>
+
+<script type="text/javascript">
+    var board = [];
+    var hasConflicted = [];
+    var score = 0;
+    
+    $(function(){
+        newgame();
+    });
+
+    $(document).on('keydown',function(event){
+        switch(event.keyCode){
+            case 37: //left
+                event.preventDefault();
+                if (moveLeft()) {
+                    setTimeout("generateOneNumber()",210);
+                    setTimeout("isGameOver()",300);
+                }
+                break;
+            case 38: //up
+                event.preventDefault();
+                if (moveUp()) {
+                    setTimeout("generateOneNumber()",210);
+                    setTimeout("isGameOver()",300);
+                }
+                break;
+            case 39: //right
+                event.preventDefault();
+                if (moveRight()) {
+                    setTimeout("generateOneNumber()",210);
+                    setTimeout("isGameOver()",300);
+                }
+                break;
+            case 40: //down
+                event.preventDefault();
+                if (moveDown()) {
+                    setTimeout("generateOneNumber()",210);
+                    setTimeout("isGameOver()",300);
+                }
+                break;
+            default:
+                break;
+        }
+        // return false;
+    });
+
+    function newgame(){
+        init();
+        //生成两个随机数字
+        generateOneNumber();
+        generateOneNumber();
+    }
+
+    //初始化棋盘格
+    function init(){
+        for (var i = 0; i < 4; i++) {
+            board[i] = [];
+            hasConflicted[i] = [];
+            for (var j = 0; j < 4; j++) {
+                board[i][j] = 0;
+                hasConflicted[i][j] = 0;
+                var gridCell = $('#grid-cell-'+i+'-'+j);
+                gridCell.css('top',getPosTop(i,j));
+                gridCell.css('left',getPosLeft(i,j));
+            }
+        }
+        // board = [
+        //     [2,2,4,8],
+        //     [0,4,8,16],
+        //     [256,128,64,32],
+        //     [512,1024,2048,4096]
+        // ];
+        updateBoardView();
+        score = 0;
+    }
+
+    //更新棋盘显示
+    function updateBoardView(){
+        $('.number-cell').remove();
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                $('#grid-container').append('<div class="number-cell" id="number-cell-'+i+'-'+j+'"></div>');
+                var numberCell = $('#number-cell-'+i+'-'+j);
+
+                if (board[i][j] == 0) {
+                    //没有数字
+                    numberCell.css({
+                        'width' :  '0px',
+                        'height':  '0px',
+                        'top'   :  getPosTop(i,j)+50+'px',
+                        'left'  :  getPosLeft(i,j)+50+'px'
+                    });
+                }else{
+                    //有数字
+                    numberCell.css({
+                        'width'             :  '100px',
+                        'height'            :  '100px',
+                        'top'               :  getPosTop(i,j)+'px',
+                        'left'              :  getPosLeft(i,j)+'px',
+                        'color'             :  getNumColor(board[i][j]),
+                        'background-color'  :  getNumBgColor(board[i][j])
+                    }).text(board[i][j]);
+                    if (board[i][j] > 1000) {
+                        numberCell.css({
+                            'font-size':'36px'
+                        });
+                    }
+                }
+                hasConflicted[i][j] = false;
+            }
+        }        
+    }
+
+    //随机位置生成一个随机数 [24]
+    function generateOneNumber(){
+        if (nospace(board)) 
+            return false;
+        //***************************************
+        // var randx = Math.floor(Math.random()*4);
+        // var randy = Math.floor(Math.random()*4);
+        // optimize?
+        // while(board[randx][randy] != 0){
+        //     randx = Math.floor(Math.random()*4);
+        //     randy = Math.floor(Math.random()*4);
+        // }
+        //***************************************
+
+        var boardSpace = [];
+        var n = 0;
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] == 0) {
+                    boardSpace[n] = [];
+                    boardSpace[n]['x'] = i;
+                    boardSpace[n]['y'] = j;
+                    n++;
+                }
+            }
+        }
+        var rand = Math.floor(Math.random()*boardSpace.length);
+        var randx = boardSpace[rand]['x'];
+        var randy = boardSpace[rand]['y'];
+        //***************************************
+        var randNum = Math.random() > 0.5 ? 2 : 4;
+        board[randx][randy] = randNum;
+        showNumWithAnimation(randx,randy,randNum);
+        return true;
+    }
+
+    //判断是否已经填满
+    function nospace(board){
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] == 0)
+                    return false;
+            }        
+        }
+        return true;
+    }
+
+    //显示动画
+    function showNumWithAnimation(i,j,randNum){
+        var numberCell = $('#number-cell-'+i+'-'+j);
+        numberCell.css({
+            'background-color' : getNumBgColor(randNum),
+            'color'            : getNumColor(randNum)
+        }).text(randNum);
+        numberCell.animate({
+            width : '100px',
+            height : '100px',
+            top : getPosTop(i, j),
+            left : getPosLeft(i, j),
+        },100);
+    }
+
+    //移动动画
+    function showMoveWithAnimation(fromx,fromy,tox,toy){
+        var numberCell = $('#number-cell-'+fromx+'-'+fromy);
+        numberCell.animate({
+            top  :  getPosTop(tox,toy),
+            left :  getPosLeft(tox,toy)
+        },200);
+    }
+
+    //左移
+    function moveLeft(){
+        if (!canMoveLeft()) {
+            return false;
+        }
+        for (var i = 0; i < 4; i++) {
+            for (var j = 1; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    for (var k = 0; k < j; k++) {
+                        if (board[i][k] == 0 && noColumnBlock(i,k,j,board)) {
+                            showMoveWithAnimation(i,j,i,k);
+                            board[i][k] = board[i][j];
+                            board[i][j] = 0;
+                            continue;
+                        }else if(board[i][k] == board[i][j] && noColumnBlock(i,k,j,board) && !hasConflicted[i][k]){
+                            hasConflicted[i][k] = true;
+                            showMoveWithAnimation(i,j,i,k);
+                            board[i][k] += board[i][j];
+                            board[i][j] = 0;
+                            score += board[i][k];
+                            updateScore();
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        setTimeout("updateBoardView()",200);
+        return true;
+    }
+
+    //上移
+    function moveUp(){
+        if (!canMoveUp()) {
+            return false;
+        }
+        for (var i = 1; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    for (var k = 0; k < i; k++) {
+                        if (board[k][j] == 0 && noRowBlock(j,k,i,board)) {
+                            //空位 直接移过去
+                            showMoveWithAnimation(i,j,k,j);
+                            board[k][j] = board[i][j];
+                            board[i][j] = 0;
+                            continue;
+                        }else if(board[k][j] == board[i][j] && noRowBlock(j,k,i,board) && !hasConflicted[k][j]){
+                            hasConflicted[k][j] = true;
+                            //相同数字 叠加
+                            showMoveWithAnimation(i,j,k,j);
+                            board[k][j] += board[i][j];
+                            board[i][j] = 0;
+                            score += board[k][j];
+                            updateScore();
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        //动画完成 更新棋盘
+        setTimeout("updateBoardView()",200);
+        return true;
+    }
+
+    //右移
+    function moveRight(){
+        if (!canMoveRight()) {
+            return false;
+        }
+        for (var i = 0; i < 4; i++) {
+            for (var j = 2; j >= 0; j--) {
+                if (board[i][j] != 0) {
+                    for (var k = 3; k > j; k--) {
+                        if (board[i][k] == 0 && noColumnBlock(i,j,k,board)) {
+                            showMoveWithAnimation(i,j,i,k);
+                            board[i][k] = board[i][j];
+                            board[i][j] = 0;
+                            continue;
+                        }else if(board[i][k] == board[i][j] && noColumnBlock(i,j,k,board) && !hasConflicted[i][k]){
+                            hasConflicted[i][k] = true;
+                            showMoveWithAnimation(i,j,i,k);
+                            board[i][k] += board[i][j];
+                            board[i][j] = 0;
+                            score += board[i][k];
+                            updateScore();
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        setTimeout("updateBoardView()",200);
+        return true;
+    }
+
+    //下移
+    function moveDown(){
+        if (!canMoveDown()) {
+            return false;
+        }
+        for (var i = 2; i >= 0; i--) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    for (var k = 3; k > i; k--) {
+                        if (board[k][j] == 0 && noRowBlock(j,i,k,board)) {
+                            showMoveWithAnimation(i,j,k,j);
+                            board[k][j] = board[i][j];
+                            board[i][j] = 0;
+                            continue;
+                        }else if(board[k][j] == board[i][j] && noRowBlock(j,i,k,board) && !hasConflicted[k][j]){
+                            hasConflicted[k][j] = true;
+                            showMoveWithAnimation(i,j,k,j);
+                            board[k][j] += board[i][j];
+                            board[i][j] = 0;
+                            score += board[k][j];
+                            updateScore();
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+        setTimeout("updateBoardView()",200);
+        return true;
+    }
+
+    //判断第row行从column1到column2之间有无障碍
+    function noColumnBlock(row,column1,column2,board){
+        for (var i = column1+1; i < column2; i++) {
+            if (board[row][i] != 0)
+                return false;
+        }
+        return true;
+    }
+
+    //判断第column列从row1到row2之间有无障碍
+    function noRowBlock(column,row1,row2,board){
+        for (var i = row1+1; i < row2; i++) {
+            if (board[i][column] != 0)
+                return false;
+        }
+        return true;
+    }
+
+    //判断游戏是否结束
+    function isGameOver(){
+        if (nospace(board) && nomove(board)) {
+            alert('Game Over!');
+        }
+    }
+
+    //能否移动
+    function nomove(){
+        if (canMoveLeft() || canMoveUp() || canMoveRight() || canMoveDown()) {
+            return false;
+        }
+        return true;
+    }
+
+    //是否能够左移
+    function canMoveLeft(){
+        for (var i = 0; i < 4; i++) {
+            for (var j = 1; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    if (board[i][j-1] == 0 || board[i][j-1] == board[i][j]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    
+    //是否能够上移
+    function canMoveUp(){
+        for (var i = 1; i < 4; i++) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    if (board[i-1][j] == 0 || board[i-1][j] == board[i][j]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    //是否能够右移
+    function canMoveRight(){
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 3; j++) {
+                if (board[i][j] != 0) {
+                    if (board[i][j+1] == 0 || board[i][j+1] == board[i][j]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    //是否能够下移
+    function canMoveDown(){
+        for (var i = 0; i < 3; i++) {
+            for (var j = 0; j < 4; j++) {
+                if (board[i][j] != 0) {
+                    if (board[i+1][j] == 0 || board[i+1][j] == board[i][j]) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function updateScore(){
+        $('#score').html(score);
+    }
+
+    //每个数字对应的颜色
+    function getNumBgColor(num){
+        switch (num){
+            case 2 : return '#eee4da';
+            case 4 : return '#ede0c8';
+            case 8 : return '#f2b179';
+            case 16 : return '#f59563';
+            case 32 : return '#f67c5f';
+            case 64 : return '#f65e3b';
+            case 128 : return '#edcf72';
+            case 256 : return '#edcc61';
+            case 512 : return '#9c0';
+            case 1024 : return '#33b5e5';
+            case 2048 : return '#09c';
+            case 4096 : return '#a6c';
+            default : return 'black';
+        }
+    }
+
+    //数字颜色
+    function getNumColor(num){
+        if (num <= 4) {
+            return '#776e65';
+        }
+        return 'white';
+    }
+
+    //top位置
+    function getPosTop(i,j){
+        return 20+i*120;
+    }
+
+    //left位置
+    function getPosLeft(i,j){
+        return 20+j*120;
+    }
+
+</script>
+</body>
+</html>
