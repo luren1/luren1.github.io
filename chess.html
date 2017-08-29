@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+    <style type="text/css">
+        *{
+            padding: 0;
+            margin: 0;
+        }
+        canvas{
+            display: block;
+            margin: 50px auto;
+            box-shadow: -2px -2px 2px #efefef, 5px 5px 5px #b9b9b9;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script type="text/javascript">
+		//*****************************************************
+    window.onload = function(){
+        init();
+    }
+
+    function init(){
+        var WINDOW_WIDTH = 450;
+        var WINDOW_HEIGHT = 450;
+
+        over = false;        //结束flag
+        me = true;          //我方
+		canvas = document.getElementById('canvas');
+		context = canvas.getContext('2d');
+
+        chessBoard = [];    //记录当前落子情况
+        //初始化
+        for (var i = 0; i < 15; i++) {
+            chessBoard[i] = [];
+            for (var j = 0; j < 15; j++) {
+                chessBoard[i][j] = 0;
+            }
+        }
+
+        wins = [];          //赢法数组
+        count = 0;          //赢法种类
+        //初始化
+        for (var i = 0; i < 15; i++) {
+            wins[i] = [];
+            for (var j = 0; j < 15; j++) {
+                wins[i][j] = [];
+            }
+        }
+
+        //所有横线赢法
+        for (var i = 0; i < 15; i++) {
+            for (var j = 0; j < 11; j++) {
+                for (var k = 0; k < 5; k++) {
+                    wins[i][j+k][count] = true;
+                }
+                count++;
+            }
+        }        
+
+        //所有竖线赢法
+        for (var i = 0; i < 15; i++) {
+            for (var j = 0; j < 11; j++) {
+                for (var k = 0; k < 5; k++) {
+                    wins[j+k][i][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //所有反斜线赢法
+        for (var i = 0; i < 11; i++) {
+            for (var j = 0; j < 11; j++) {
+                for (var k = 0; k < 5; k++) {
+                    wins[i+k][j+k][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //所有斜线赢法
+        for (var i = 0; i < 11; i++) {
+            for (var j = 14; j > 3; j--) {
+                for (var k = 0; k < 5; k++) {
+                    wins[i+k][j-k][count] = true;
+                }
+                count++;
+            }
+        }
+
+        //赢法统计数组
+        userWin = [];
+        computerWin = [];
+        //初始化
+        for (var i = 0; i < count; i++) {
+            userWin[i] = 0;
+            computerWin[i] = 0;
+        }
+
+
+		canvas.width = WINDOW_WIDTH;
+		canvas.height = WINDOW_HEIGHT;
+
+        context.strokeStyle = '#bfbfbf';
+
+        // var logo = new Image();
+        // logo.src = 'images/logo.jpg';
+        // logo.onload = function(){
+            // context.drawImage(logo,0,0,450,450);         //背景
+        drawChessBoard();
+        // }
+
+        canvas.onclick = function(e){
+            if (over || !me) {
+                return;
+            }
+            var x = e.offsetX;
+            var y = e.offsetY;
+            var i = Math.floor(x/30);
+            var j = Math.floor(y/30);
+            if (chessBoard[i][j] == 0) {
+                oneStep(i,j,me);
+                chessBoard[i][j] = 1;           //黑1 白2
+
+                //更新赢法数组
+                for (var k = 0; k < count; k++) {
+                    if (wins[i][j][k]) {
+                        //有子
+                        userWin[k]++;
+                        //另一方不可能赢
+                        computerWin[k] = 6;
+                        if (userWin[k] == 5) {
+                            alert('You Win!');
+                            over = true;        //结束
+                        }
+                    }
+                }
+                if (!over) {
+                    me = !me;
+                    computerAI();
+                }
+            }
+        }
+    }
+		// ****************************************************
+
+
+    var computerAI = function(){
+        var max = 0;            //最高分数
+        var u = 0,v = 0;        //最高分数坐标
+
+        var userScore = [];
+        var computerScore = [];
+        //计分 初始化
+        for (var i = 0; i < 15; i++) {
+            userScore[i] = [];
+            computerScore[i] = [];
+            for (var j = 0; j < 15; j++) {
+                userScore[i][j] = 0;
+                computerScore[i][j] = 0;
+            }
+        }
+
+        for (var i = 0; i < 15; i++) {
+            for (var j = 0; j < 15; j++) {
+                if (chessBoard[i][j] == 0) {
+                    //若为空闲位置则计算分
+                    for (var k = 0; k < count; k++) {
+                        if (wins[i][j][k]) {
+                            //有子
+
+                            //用户得分
+                            if (userWin[k] == 1) {
+                                userScore[i][j] += 200;
+                            }else if (userWin[k] == 2) {
+                                userScore[i][j] += 400;
+                            }else if (userWin[k] == 3) {
+                                userScore[i][j] += 2000;
+                            }else if (userWin[k] == 4) {
+                                userScore[i][j] += 10000;
+                            }
+
+                            //电脑得分
+                            if (computerWin[k] == 1) {
+                                computerScore[i][j] += 220;
+                            }else if (computerWin[k] == 2) {
+                                computerScore[i][j] += 420;
+                            }else if (computerWin[k] == 3) {
+                                computerScore[i][j] += 2100;
+                            }else if (computerWin[k] == 4) {
+                                computerScore[i][j] += 20000;
+                            }
+                        }
+                    }
+                    if (userScore[i][j] > max) {
+                        max = userScore[i][j];
+                        u = i;
+                        v = j;
+                    }else if (userScore[i][j] == max) {
+                        if (computerScore[i][j] > computerScore[u][v]) {
+                            u = i;
+                            v = j;
+                        }
+                    }
+
+                    if (computerScore[i][j] > max) {
+                        max = computerScore[i][j];
+                        u = i;
+                        v = j;
+                    }else if (computerScore[i][j] == max) {
+                        if (userScore[i][j] > userScore[u][v]) {
+                            u = i;
+                            v = j;
+                        }
+                    }
+                }
+            }
+        }
+        // console.log(userScore+' '+computerScore);
+        oneStep(u,v,false);
+        chessBoard[u][v] = 2;
+        //更新赢法数组
+        for (var k = 0; k < count; k++) {
+            if (wins[u][v][k]) {
+                //有子
+                computerWin[k]++;
+                //另一方不可能赢
+                userWin[k] = 6;
+                if (computerWin[k] == 5) {
+                    alert('Computer Win!');
+                    over = true;        //结束
+                }
+            }
+        }
+        if (!over) {
+            me = !me;
+        }
+    }
+
+
+    //绘制棋盘
+    var drawChessBoard = function(){
+        for (var i = 0; i < 15; i++) {
+            //15条竖线
+            context.moveTo(15+i*30,15);
+            context.lineTo(15+i*30,435);
+            context.stroke();
+            //15条横线
+            context.moveTo(15,15+i*30);
+            context.lineTo(435,15+i*30);
+            context.stroke();
+        }
+    }
+
+    //落子绘制
+    var oneStep = function(i,j,me){
+        context.beginPath();
+        context.arc(15+i*30,15+j*30,13,0,2*Math.PI);
+        context.closePath();
+
+        //渐变色
+        var gradient = context.createRadialGradient(15+i*30+2,15+j*30-2,13,15+i*30+2,15+j*30-2,0);
+
+        //判断哪方落子
+        if (me) {
+            //黑
+            gradient.addColorStop(0,'#0a0a0a');
+            gradient.addColorStop(1,'#636766');
+        }else{
+            gradient.addColorStop(0,'#d1d1d1');
+            gradient.addColorStop(1,'#f9f9f9');
+        }
+
+        context.fillStyle = gradient;
+        context.fill();
+
+    }
+
+
+
+</script>
+</body>
+</html>
